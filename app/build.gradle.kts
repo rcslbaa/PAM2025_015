@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.example.a015_projectakhir"
-    compileSdk = 35 // Diturunkan dari 36 ke 35 agar stabil
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.a015_projectakhir"
         minSdk = 27
-        targetSdk = 35 // Sesuaikan dengan compileSdk
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -28,7 +28,6 @@ android {
         }
     }
     compileOptions {
-        // Standar Android Studio terbaru menggunakan Java 17
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -38,10 +37,23 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // --- TAMBAHKAN BLOK INI UNTUK MEMPERBAIKI ERROR META-INF ---
+    packaging {
+        resources {
+            excludes += "/META-INF/INDEX.LIST"
+            excludes += "/META-INF/DEPENDENCIES"
+            excludes += "/META-INF/LICENSE*"
+            excludes += "/META-INF/NOTICE*"
+            excludes += "/META-INF/ASL2.0"
+            excludes += "/META-INF/*.kotlin_module"
+
+            excludes += "/META-INF/io.netty.versions.properties"
+        }
+    }
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -56,6 +68,11 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.ads.mobile.sdk)
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.firebase.appdistribution.gradle)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
