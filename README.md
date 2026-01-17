@@ -7,10 +7,10 @@ Aplikasi manajemen operasional laundry berbasis Android yang dirancang untuk mem
 ### 🔐 Autentikasi & Akses
 Halaman masuk yang membedakan hak akses antara Administrator (manajemen data) dan Staff (operasional harian).
 
-| Tampilan Login |
-| :---: |
-| <img width="393" height="867" alt="Screenshot 2026-01-17 172527" src="https://github.com/user-attachments/assets/88ae985d-fe6c-43c2-b89f-7adec1e4c12e" /> | <img width="394" height="868" alt="Screenshot 2026-01-17 172546" src="https://github.com/user-attachments/assets/a963a1ea-0746-4087-bf67-48a0d05d365f" />
-| *Halaman Masuk Pengguna* |
+| Tampilan Login Admin | Tampilan Login Staff |
+| :---: | :---: |
+| <img width="393" height="867" alt="Screenshot 2026-01-17 172527" src="https://github.com/user-attachments/assets/88ae985d-fe6c-43c2-b89f-7adec1e4c12e" /> | <img width="394" height="868" alt="Screenshot 2026-01-17 172546" src="https://github.com/user-attachments/assets/a963a1ea-0746-4087-bf67-48a0d05d365f" /> |
+| *Halaman Masuk Pengguna* | *Halaman Masuk Pengguna* |
 
 ---
 
