@@ -1,5 +1,6 @@
 package com.example.a015_projectakhir.viewmodel
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -41,15 +42,12 @@ class LoginViewModel(private val apiService: ApiService) : ViewModel() {
     fun updateStatusPesanan(idPesanan: Int, statusBaru: String, onRefresh: () -> Unit) {
         viewModelScope.launch {
             try {
-                // DATA DIRUBAH: Menggunakan Map untuk JSON Body
                 val data = mapOf("id_pesanan" to idPesanan, "status" to statusBaru)
-
-                val response = apiService.updateStatus(data)
-                if (response.status == "success") {
-                    onRefresh() // Panggil refresh data setelah berhasil
-                }
+                // Cukup panggil fungsinya. Jika tidak error, berarti sukses.
+                apiService.updateStatus(data)
+                onRefresh()
             } catch (e: Exception) {
-                // Handle error update status jika perlu
+                Log.e("LOGIN_VM", "Gagal update: ${e.message}")
             }
         }
     }
