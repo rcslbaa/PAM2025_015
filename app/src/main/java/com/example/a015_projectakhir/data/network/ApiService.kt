@@ -1,13 +1,10 @@
 package com.example.a015_projectakhir.data.network
 
-import com.example.a015_projectakhir.data.model.GenericResponse
 import com.example.a015_projectakhir.data.model.Layanan
 import com.example.a015_projectakhir.data.model.Pesanan
 import com.example.a015_projectakhir.data.model.User
-import retrofit2.http.Body
-import retrofit2.http.GET
-import retrofit2.http.HTTP
-import retrofit2.http.POST
+import okhttp3.ResponseBody
+import retrofit2.http.*
 
 interface ApiService {
 
@@ -19,24 +16,28 @@ interface ApiService {
     @GET("get_layanan")
     suspend fun getLayanan(): List<Layanan>
 
+    // Menggunakan ResponseBody agar tidak perlu file GenericResponse
     @POST("add_layanan")
-    suspend fun addLayanan(@Body data: Map<String, Any>): GenericResponse
+    suspend fun addLayanan(@Body data: Map<String, @JvmSuppressWildcards Any>): ResponseBody
 
     @POST("update_layanan")
-    suspend fun updateLayanan(@Body data: Map<String, Any>): GenericResponse
+    suspend fun updateLayanan(@Body data: Map<String, @JvmSuppressWildcards Any>): ResponseBody
 
     @HTTP(method = "DELETE", path = "delete_layanan", hasBody = true)
-    suspend fun deleteLayanan(@Body data: Map<String, Int>)
+    suspend fun deleteLayanan(@Body data: Map<String, Int>): ResponseBody
 
     // 3. TRANSAKSI & PESANAN (STAFF)
     @GET("get_pesanan")
     suspend fun getPesanan(): List<Pesanan>
 
     @POST("add_pesanan")
-    suspend fun addPesanan(@Body data: Map<String, Any>): GenericResponse
+    suspend fun addPesanan(@Body data: Map<String, @JvmSuppressWildcards Any>): ResponseBody
 
     @POST("update_status_pesanan")
-    suspend fun updateStatus(@Body data: Map<String, Any>): GenericResponse
+    suspend fun updateStatus(@Body data: Map<String, @JvmSuppressWildcards Any>): ResponseBody
+
+    @HTTP(method = "DELETE", path = "delete_pesanan", hasBody = true)
+    suspend fun deletePesanan(@Body data: Map<String, @JvmSuppressWildcards Any>): ResponseBody
 }
 
 data class LoginResponse(
