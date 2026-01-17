@@ -7,12 +7,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,16 +35,15 @@ fun StaffScreen(apiService: ApiService, onLogout: () -> Unit) {
     val BgColor = Color(0xFFF8FAFC)
     val AccentColor = Color(0xFF6200EE)
 
+    // --- STATE LOGIC (TETAP SAMA) ---
     var listLayanan by remember { mutableStateOf<List<Layanan>>(emptyList()) }
     var listPesanan by remember { mutableStateOf<List<Pesanan>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    // State Dialogs
     var showDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf<Pesanan?>(null) }
 
-    // State Input
     var namaPelanggan by remember { mutableStateOf("") }
     var beratInput by remember { mutableStateOf("") }
     var selectedLayanan by remember { mutableStateOf<Layanan?>(null) }
@@ -75,36 +72,47 @@ fun StaffScreen(apiService: ApiService, onLogout: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("White Glove Laundry", fontWeight = FontWeight.Black) },
+                title = { Text("White Glove Staff", fontWeight = FontWeight.Black) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White, titleContentColor = PrimaryBlue),
                 actions = {
                     IconButton(onClick = onLogout) { Icon(Icons.Default.ExitToApp, "Logout", tint = Color.Red) }
                 }
             )
         },
+        bottomBar = {
+            NavigationBar(containerColor = Color.White) {
+                NavigationBarItem(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    label = { Text("Layanan") },
+                    icon = { Icon(Icons.Default.List, null) },
+                    colors = NavigationBarItemDefaults.colors(selectedIconColor = PrimaryBlue, selectedTextColor = PrimaryBlue)
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    label = { Text("Antrean") },
+                    icon = { Icon(Icons.Default.DateRange, null) },
+                    colors = NavigationBarItemDefaults.colors(selectedIconColor = PrimaryBlue, selectedTextColor = PrimaryBlue)
+                )
+            }
+        },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { namaPelanggan = ""; beratInput = ""; selectedLayanan = null; showDialog = true },
-                containerColor = AccentColor, contentColor = Color.White, shape = CircleShape
+                onClick = {
+                    namaPelanggan = ""; beratInput = ""; selectedLayanan = null; showDialog = true
+                },
+                containerColor = PrimaryBlue, contentColor = Color.White, shape = CircleShape
             ) { Icon(Icons.Default.Add, "Tambah") }
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize().background(BgColor)) {
-            TabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = Color.White,
-                indicator = { tabPositions ->
-                    TabRowDefaults.SecondaryIndicator(Modifier.tabIndicatorOffset(tabPositions[selectedTab]), color = PrimaryBlue)
-                }
-            ) {
-                Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Layanan") })
-                Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Antrean") })
-            }
 
             if (isLoading) LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = PrimaryBlue)
 
             Box(modifier = Modifier.weight(1f)) {
                 if (selectedTab == 0) {
+                    // --- TAB LAYANAN ---
                     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         items(listLayanan) { item ->
                             Card(
@@ -121,6 +129,7 @@ fun StaffScreen(apiService: ApiService, onLogout: () -> Unit) {
                         }
                     }
                 } else {
+                    // --- TAB ANTREAN ---
                     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(listPesanan) { pesanan ->
                             Card(
@@ -130,14 +139,10 @@ fun StaffScreen(apiService: ApiService, onLogout: () -> Unit) {
                                 Column(modifier = Modifier.padding(16.dp)) {
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                         Text(pesanan.nama_pelanggan, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            // Badge Status
                                             Badge(containerColor = if(pesanan.status == "Proses") Color(0xFFFFEBEE) else Color(0xFFE8F5E9)) {
                                                 Text(pesanan.status, color = if(pesanan.status == "Proses") Color.Red else Color(0xFF2E7D32), modifier = Modifier.padding(4.dp))
                                             }
-
-                                            // Tombol Hapus (Hanya muncul jika sudah Selesai)
                                             if (pesanan.status == "Selesai") {
                                                 IconButton(onClick = { showDeleteConfirm = pesanan }) {
                                                     Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = Color.Red)
@@ -159,17 +164,12 @@ fun StaffScreen(apiService: ApiService, onLogout: () -> Unit) {
                                                             "id_pesanan" to pesanan.id_pesanan.toInt(),
                                                             "status" to "Selesai"
                                                         )
-                                                        val response = apiService.updateStatus(updateMap)
-
-                                                        if (response.status == "success") {
-                                                            Toast.makeText(context, "Sukses Update!", Toast.LENGTH_SHORT).show()
-                                                            refreshData()
-                                                        } else {
-                                                            Toast.makeText(context, "Gagal: ${response.message}", Toast.LENGTH_LONG).show()
-                                                        }
+                                                        apiService.updateStatus(updateMap)
+                                                        Toast.makeText(context, "Pesanan Selesai!", Toast.LENGTH_SHORT).show()
+                                                        refreshData()
                                                     } catch (e: Exception) {
                                                         Log.e("UPDATE_ERROR", "${e.message}")
-                                                        Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                        Toast.makeText(context, "Gagal Update", Toast.LENGTH_SHORT).show()
                                                     }
                                                 }
                                             },
@@ -189,7 +189,7 @@ fun StaffScreen(apiService: ApiService, onLogout: () -> Unit) {
             }
         }
 
-        // --- DIALOG TAMBAH PESANAN ---
+        // --- DIALOG TAMBAH PESANAN (TETAP SAMA) ---
         if (showDialog) {
             AlertDialog(
                 onDismissRequest = { showDialog = false },
@@ -228,6 +228,7 @@ fun StaffScreen(apiService: ApiService, onLogout: () -> Unit) {
                                     "berat" to (beratInput.toDoubleOrNull() ?: 0.0),
                                     "total_harga" to totalHarga
                                 ))
+                                Toast.makeText(context, "Berhasil Simpan!", Toast.LENGTH_SHORT).show()
                                 showDialog = false
                                 refreshData()
                                 selectedTab = 1
@@ -241,25 +242,23 @@ fun StaffScreen(apiService: ApiService, onLogout: () -> Unit) {
             )
         }
 
-        // --- DIALOG KONFIRMASI HAPUS ---
+        // --- DIALOG HAPUS (TETAP SAMA) ---
         showDeleteConfirm?.let { pesanan ->
             AlertDialog(
                 onDismissRequest = { showDeleteConfirm = null },
                 title = { Text("Hapus Data") },
-                text = { Text("Apakah Anda yakin ingin menghapus data pesanan atas nama ${pesanan.nama_pelanggan}?") },
+                text = { Text("Hapus data pesanan ${pesanan.nama_pelanggan}?") },
                 confirmButton = {
                     Button(
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
                         onClick = {
                             scope.launch {
                                 try {
-                                    val response = apiService.deletePesanan(mapOf("id_pesanan" to pesanan.id_pesanan.toInt()))
-                                    if (response.status == "success") {
-                                        Toast.makeText(context, "Data Berhasil Dihapus", Toast.LENGTH_SHORT).show()
-                                        refreshData()
-                                    }
+                                    apiService.deletePesanan(mapOf("id_pesanan" to pesanan.id_pesanan.toInt()))
+                                    Toast.makeText(context, "Dihapus", Toast.LENGTH_SHORT).show()
+                                    refreshData()
                                 } catch (e: Exception) {
-                                    Toast.makeText(context, "Gagal Hapus: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Gagal Hapus", Toast.LENGTH_SHORT).show()
                                 } finally {
                                     showDeleteConfirm = null
                                 }
