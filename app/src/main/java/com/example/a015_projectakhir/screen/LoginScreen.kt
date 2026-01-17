@@ -78,7 +78,7 @@ fun LoginScreen(
                     color = PrimaryBlue
                 )
                 Text(
-                    text = "Premium Laundry Service",
+                    text = "Laundry Service",
                     fontSize = 14.sp,
                     color = Color.Gray,
                     modifier = Modifier.padding(bottom = 32.dp)
