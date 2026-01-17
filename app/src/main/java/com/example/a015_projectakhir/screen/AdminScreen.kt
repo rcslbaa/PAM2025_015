@@ -18,7 +18,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -35,10 +34,8 @@ fun AdminScreen(apiService: ApiService, onLogout: () -> Unit) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Warna Tema Konsisten
     val PrimaryBlue = Color(0xFF0061A4)
     val BgColor = Color(0xFFF8FAFC)
-    val OrangeEdit = Color(0xFFF57C00)
 
     var showDialog by remember { mutableStateOf(false) }
     var isEditMode by remember { mutableStateOf(false) }
@@ -65,31 +62,47 @@ fun AdminScreen(apiService: ApiService, onLogout: () -> Unit) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text("Panel Management Admin", fontWeight = FontWeight.Black) },
-                actions = {
-                    IconButton(onClick = onLogout) {
-                        Icon(Icons.Default.ExitToApp, "Logout", tint = Color.Red)
-                    }
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        "ADMIN PANEL",
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 2.sp
+                    )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = PrimaryBlue
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = PrimaryBlue,
+                    titleContentColor = Color.White
                 )
             )
         },
+        bottomBar = {
+            BottomAppBar(
+                containerColor = Color.White,
+                tonalElevation = 8.dp,
+                actions = {
+                    TextButton(onClick = onLogout) {
+                        Icon(Icons.Default.ExitToApp, null, tint = Color.Red)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Keluar Aplikasi", color = Color.Red)
+                    }
+                }
+            )
+        },
         floatingActionButton = {
-            FloatingActionButton(
-                containerColor = PrimaryBlue,
-                contentColor = Color.White,
-                shape = CircleShape,
+            ExtendedFloatingActionButton(
+                text = { Text("Tambah Data") },
+                icon = { Icon(Icons.Default.Add, null) },
                 onClick = {
                     isEditMode = false
                     namaInput = ""; hargaInput = ""; satuanInput = ""
                     showDialog = true
-                }
-            ) { Icon(Icons.Default.Add, "Tambah Layanan") }
-        }
+                },
+                containerColor = PrimaryBlue,
+                contentColor = Color.White
+            )
+        },
+        floatingActionButtonPosition = FabPosition.End
     ) { padding ->
         Column(
             modifier = Modifier
@@ -97,7 +110,6 @@ fun AdminScreen(apiService: ApiService, onLogout: () -> Unit) {
                 .fillMaxSize()
                 .background(BgColor)
         ) {
-            // Header Section
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -109,7 +121,6 @@ fun AdminScreen(apiService: ApiService, onLogout: () -> Unit) {
                     Spacer(Modifier.width(8.dp))
                     Text(
                         "Daftar Harga & Layanan",
-                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.DarkGray
                     )
@@ -118,7 +129,8 @@ fun AdminScreen(apiService: ApiService, onLogout: () -> Unit) {
 
             LazyColumn(
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize()
             ) {
                 items(listLayanan) { item ->
                     Card(
@@ -145,21 +157,19 @@ fun AdminScreen(apiService: ApiService, onLogout: () -> Unit) {
                                 )
                             }
 
-                            // Edit Button (Blue Elegant)
                             IconButton(
                                 modifier = Modifier.background(PrimaryBlue.copy(alpha = 0.1f), CircleShape),
                                 onClick = {
                                     selectedId = item.id_layanan
                                     namaInput = item.nama_layanan
                                     hargaInput = item.harga.toString()
-                                    satuanInput = item.satuan.replace("kg", "").replace("pcs", "").trim()
+                                    satuanInput = item.satuan
                                     isEditMode = true
                                     showDialog = true
                                 }) { Icon(Icons.Default.Edit, "Edit", tint = PrimaryBlue) }
 
                             Spacer(Modifier.width(8.dp))
 
-                            // Delete Button (Soft Red)
                             IconButton(
                                 modifier = Modifier.background(Color.Red.copy(alpha = 0.1f), CircleShape),
                                 onClick = {
@@ -172,17 +182,15 @@ fun AdminScreen(apiService: ApiService, onLogout: () -> Unit) {
             }
         }
 
-        // --- DIALOGS (Tambah/Edit & Hapus) ---
+        // --- DIALOG KONFIRMASI HAPUS ---
         if (showDeleteConfirm) {
             AlertDialog(
                 onDismissRequest = { showDeleteConfirm = false },
-                shape = RoundedCornerShape(24.dp),
                 title = { Text("Konfirmasi Hapus") },
-                text = { Text("Yakin ingin menghapus layanan '${itemToDelete?.nama_layanan}'? Tindakan ini tidak dapat dibatalkan.") },
+                text = { Text("Hapus layanan '${itemToDelete?.nama_layanan}'?") },
                 confirmButton = {
                     Button(
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                        shape = RoundedCornerShape(12.dp),
                         onClick = {
                             scope.launch {
                                 try {
@@ -191,18 +199,17 @@ fun AdminScreen(apiService: ApiService, onLogout: () -> Unit) {
                                     refreshData()
                                     snackbarHostState.showSnackbar("Berhasil dihapus")
                                 } catch (e: Exception) {
-                                    snackbarHostState.showSnackbar("Gagal menghapus data")
+                                    snackbarHostState.showSnackbar("Gagal menghapus")
                                 }
                             }
                         }
-                    ) { Text("Hapus Permanen", color = Color.White) }
+                    ) { Text("Hapus", color = Color.White) }
                 },
-                dismissButton = {
-                    TextButton(onClick = { showDeleteConfirm = false }) { Text("Batal") }
-                }
+                dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("Batal") } }
             )
         }
 
+        // --- DIALOG TAMBAH/EDIT ---
         if (showDialog) {
             AlertDialog(
                 onDismissRequest = { showDialog = false },
@@ -220,61 +227,60 @@ fun AdminScreen(apiService: ApiService, onLogout: () -> Unit) {
                             value = namaInput,
                             onValueChange = { namaInput = it },
                             label = { Text("Nama Layanan") },
-                            placeholder = { Text("Contoh: Cuci Kering") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            modifier = Modifier.fillMaxWidth()
                         )
                         OutlinedTextField(
                             value = hargaInput,
                             onValueChange = { if (it.all { c -> c.isDigit() }) hargaInput = it },
-                            label = { Text("Harga Per Satuan") },
+                            label = { Text("Harga") },
                             prefix = { Text("Rp ") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            modifier = Modifier.fillMaxWidth()
                         )
                         OutlinedTextField(
                             value = satuanInput,
                             onValueChange = { satuanInput = it },
-                            label = { Text("Satuan (kg / pcs)") },
-                            placeholder = { Text("kg") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            label = { Text("Satuan (kg/pcs)") },
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 },
                 confirmButton = {
                     Button(
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
-                        shape = RoundedCornerShape(12.dp),
                         onClick = {
                             scope.launch {
                                 try {
                                     val hargaInt = hargaInput.toIntOrNull() ?: 0
+                                    if (namaInput.isEmpty() || hargaInput.isEmpty() || satuanInput.isEmpty()) {
+                                        snackbarHostState.showSnackbar("Semua kolom harus diisi")
+                                        return@launch
+                                    }
+
                                     val data = mutableMapOf<String, Any>(
                                         "nama_layanan" to namaInput,
                                         "harga" to hargaInt,
                                         "satuan" to satuanInput
                                     )
+
                                     if (isEditMode) {
                                         data["id_layanan"] = selectedId
                                         apiService.updateLayanan(data)
                                     } else {
                                         apiService.addLayanan(data)
                                     }
+
                                     showDialog = false
                                     refreshData()
                                     snackbarHostState.showSnackbar("Berhasil disimpan")
                                 } catch (e: Exception) {
-                                    snackbarHostState.showSnackbar("Gagal koneksi server")
+                                    Log.e("API_ERROR", "Detail error: ${e.message}")
+                                    snackbarHostState.showSnackbar("Gagal Simpan")
                                 }
                             }
                         }) { Text("Simpan Data") }
                 },
-                dismissButton = {
-                    TextButton(onClick = { showDialog = false }) { Text("Batal") }
-                }
+                dismissButton = { TextButton(onClick = { showDialog = false }) { Text("Batal") } }
             )
         }
     }
