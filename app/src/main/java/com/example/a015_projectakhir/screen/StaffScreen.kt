@@ -2,14 +2,17 @@ package com.example.a015_projectakhir.screen
 
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.a015_projectakhir.data.model.Layanan
 import com.example.a015_projectakhir.data.model.Pesanan
 import com.example.a015_projectakhir.data.network.ApiService
@@ -29,13 +33,20 @@ fun StaffScreen(apiService: ApiService, onLogout: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    val PrimaryBlue = Color(0xFF0061A4)
+    val BgColor = Color(0xFFF8FAFC)
+    val AccentColor = Color(0xFF6200EE)
+
     var listLayanan by remember { mutableStateOf<List<Layanan>>(emptyList()) }
     var listPesanan by remember { mutableStateOf<List<Pesanan>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
-
     var selectedTab by remember { mutableIntStateOf(0) }
-    var showDialog by remember { mutableStateOf(false) }
 
+    // State Dialogs
+    var showDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf<Pesanan?>(null) }
+
+    // State Input
     var namaPelanggan by remember { mutableStateOf("") }
     var beratInput by remember { mutableStateOf("") }
     var selectedLayanan by remember { mutableStateOf<Layanan?>(null) }
@@ -47,18 +58,15 @@ fun StaffScreen(apiService: ApiService, onLogout: () -> Unit) {
         (berat * harga).toInt()
     }
 
-    // Fungsi Refresh Data
     fun refreshData() {
         scope.launch {
             isLoading = true
             try {
                 listLayanan = apiService.getLayanan()
-                listPesanan = apiService.getPesanan()
+                listPesanan = apiService.getPesanan().sortedByDescending { it.id_pesanan }
             } catch (e: Exception) {
-                Log.e("ERROR_STAFF", "Gagal load data: ${e.message}")
-            } finally {
-                isLoading = false
-            }
+                Log.e("API_ERROR", "Gagal load: ${e.message}")
+            } finally { isLoading = false }
         }
     }
 
@@ -66,116 +74,113 @@ fun StaffScreen(apiService: ApiService, onLogout: () -> Unit) {
 
     Scaffold(
         topBar = {
-            Column {
-                TopAppBar(
-                    title = { Text("Panel Kasir Laundry", fontWeight = FontWeight.Bold) },
-                    actions = {
-                        IconButton(onClick = onLogout) {
-                            Icon(Icons.Default.ExitToApp, contentDescription = "Logout", tint = Color.Red)
-                        }
-                    }
-                )
-                TabRow(selectedTabIndex = selectedTab) {
-                    Tab(selected = (selectedTab == 0), onClick = { selectedTab = 0 }) {
-                        Text("Daftar Layanan", modifier = Modifier.padding(16.dp))
-                    }
-                    Tab(selected = (selectedTab == 1), onClick = { selectedTab = 1 }) {
-                        Text("Riwayat Pesanan", modifier = Modifier.padding(16.dp))
-                    }
+            TopAppBar(
+                title = { Text("White Glove Laundry", fontWeight = FontWeight.Black) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White, titleContentColor = PrimaryBlue),
+                actions = {
+                    IconButton(onClick = onLogout) { Icon(Icons.Default.ExitToApp, "Logout", tint = Color.Red) }
                 }
-            }
+            )
         },
         floatingActionButton = {
             FloatingActionButton(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White,
-                onClick = {
-                    namaPelanggan = ""
-                    beratInput = ""
-                    selectedLayanan = null
-                    showDialog = true
-                }
-            ) { Icon(Icons.Default.Add, contentDescription = "Tambah") }
+                onClick = { namaPelanggan = ""; beratInput = ""; selectedLayanan = null; showDialog = true },
+                containerColor = AccentColor, contentColor = Color.White, shape = CircleShape
+            ) { Icon(Icons.Default.Add, "Tambah") }
         }
     ) { padding ->
-        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
-            if (isLoading && listLayanan.isEmpty()) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else {
+        Column(modifier = Modifier.padding(padding).fillMaxSize().background(BgColor)) {
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.White,
+                indicator = { tabPositions ->
+                    TabRowDefaults.SecondaryIndicator(Modifier.tabIndicatorOffset(tabPositions[selectedTab]), color = PrimaryBlue)
+                }
+            ) {
+                Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Layanan") })
+                Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Antrean") })
+            }
+
+            if (isLoading) LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = PrimaryBlue)
+
+            Box(modifier = Modifier.weight(1f)) {
                 if (selectedTab == 0) {
-                    // TAB LAYANAN
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         items(listLayanan) { item ->
-                            ListItem(
-                                headlineContent = { Text(item.nama_layanan, fontWeight = FontWeight.Bold) },
-                                supportingContent = { Text("Rp ${item.harga} / ${item.satuan}") },
-                                trailingContent = {
-                                    Button(onClick = {
-                                        selectedLayanan = item
-                                        showDialog = true
-                                    }) { Text("Pilih") }
-                                }
-                            )
-                            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                            Card(
+                                onClick = { selectedLayanan = item; showDialog = true },
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                elevation = CardDefaults.cardElevation(2.dp)
+                            ) {
+                                ListItem(
+                                    headlineContent = { Text(item.nama_layanan, fontWeight = FontWeight.Bold) },
+                                    supportingContent = { Text("Rp ${item.harga} / ${item.satuan}") },
+                                    leadingContent = { Icon(Icons.Default.ShoppingCart, null, tint = PrimaryBlue) }
+                                )
+                            }
                         }
                     }
                 } else {
-                    // TAB RIWAYAT
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(listPesanan) { pesanan ->
                             Card(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                                elevation = CardDefaults.cardElevation(2.dp)
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                elevation = CardDefaults.cardElevation(4.dp)
                             ) {
                                 Column(modifier = Modifier.padding(16.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(pesanan.nama_pelanggan, fontWeight = FontWeight.Bold)
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                        Text(pesanan.nama_pelanggan, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
 
-                                        // PERBAIKAN: Menggunakan AssistChip untuk Update Status
-                                        AssistChip(
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            // Badge Status
+                                            Badge(containerColor = if(pesanan.status == "Proses") Color(0xFFFFEBEE) else Color(0xFFE8F5E9)) {
+                                                Text(pesanan.status, color = if(pesanan.status == "Proses") Color.Red else Color(0xFF2E7D32), modifier = Modifier.padding(4.dp))
+                                            }
+
+                                            // Tombol Hapus (Hanya muncul jika sudah Selesai)
+                                            if (pesanan.status == "Selesai") {
+                                                IconButton(onClick = { showDeleteConfirm = pesanan }) {
+                                                    Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = Color.Red)
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Text(pesanan.tanggal_masuk, fontSize = 12.sp, color = Color.Gray)
+                                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                                    Text("${pesanan.nama_layanan} (${pesanan.berat} kg)")
+                                    Text("Total: Rp ${pesanan.total_harga}", fontWeight = FontWeight.Black, color = AccentColor)
+
+                                    if (pesanan.status == "Proses") {
+                                        Button(
                                             onClick = {
-                                                if (pesanan.status == "Proses") {
-                                                    scope.launch {
-                                                        try {
-                                                            val data = mapOf(
-                                                                "id_pesanan" to pesanan.id_pesanan,
-                                                                "status" to "Selesai"
-                                                            )
-                                                            val response = apiService.updateStatus(data)
+                                                scope.launch {
+                                                    try {
+                                                        val updateMap = mapOf(
+                                                            "id_pesanan" to pesanan.id_pesanan.toInt(),
+                                                            "status" to "Selesai"
+                                                        )
+                                                        val response = apiService.updateStatus(updateMap)
 
-                                                            if (response.status == "success") {
-                                                                Toast.makeText(context, "Pesanan Selesai!", Toast.LENGTH_SHORT).show()
-                                                                refreshData()
-                                                            } else {
-                                                                Toast.makeText(context, "Gagal: ${response.message}", Toast.LENGTH_SHORT).show()
-                                                            }
-                                                        } catch (e: Exception) {
-                                                            Log.e("UPDATE_ERROR", "Pesan: ${e.message}")
-                                                            Toast.makeText(context, "Kesalahan Koneksi", Toast.LENGTH_SHORT).show()
+                                                        if (response.status == "success") {
+                                                            Toast.makeText(context, "Sukses Update!", Toast.LENGTH_SHORT).show()
+                                                            refreshData()
+                                                        } else {
+                                                            Toast.makeText(context, "Gagal: ${response.message}", Toast.LENGTH_LONG).show()
                                                         }
+                                                    } catch (e: Exception) {
+                                                        Log.e("UPDATE_ERROR", "${e.message}")
+                                                        Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                                                     }
                                                 }
                                             },
-                                            label = {
-                                                Text(
-                                                    text = pesanan.status,
-                                                    color = if (pesanan.status == "Proses") Color.Blue else Color(0xFF2E7D32)
-                                                )
-                                            },
-                                            colors = AssistChipDefaults.assistChipColors(
-                                                containerColor = if (pesanan.status == "Proses") Color(0xFFE3F2FD) else Color(0xFFE8F5E9)
-                                            ),
-                                            enabled = pesanan.status == "Proses"
-                                        )
+                                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                                        ) {
+                                            Icon(Icons.Default.Check, null)
+                                            Spacer(Modifier.width(8.dp))
+                                            Text("Selesaikan Pesanan")
+                                        }
                                     }
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text("${pesanan.nama_layanan} (${pesanan.berat} kg)")
-                                    Text("Total: Rp ${pesanan.total_harga}", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                                    Text(pesanan.tanggal_masuk, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                                 }
                             }
                         }
@@ -184,94 +189,86 @@ fun StaffScreen(apiService: ApiService, onLogout: () -> Unit) {
             }
         }
 
-        // DIALOG INPUT
+        // --- DIALOG TAMBAH PESANAN ---
         if (showDialog) {
             AlertDialog(
                 onDismissRequest = { showDialog = false },
-                title = { Text("Input Pesanan Baru") },
+                title = { Text("Transaksi Baru", fontWeight = FontWeight.Bold) },
                 text = {
-                    Column {
-                        OutlinedTextField(
-                            value = namaPelanggan,
-                            onValueChange = { namaPelanggan = it },
-                            label = { Text("Nama Pelanggan") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        ExposedDropdownMenuBox(
-                            expanded = expanded,
-                            onExpandedChange = { expanded = !expanded }
-                        ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(value = namaPelanggan, onValueChange = { namaPelanggan = it }, label = { Text("Nama Pelanggan") }, modifier = Modifier.fillMaxWidth())
+                        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
                             OutlinedTextField(
                                 value = selectedLayanan?.nama_layanan ?: "Pilih Layanan",
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Layanan") },
+                                onValueChange = {}, readOnly = true, label = { Text("Layanan") },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                                 modifier = Modifier.menuAnchor().fillMaxWidth()
                             )
                             ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                                 listLayanan.forEach { item ->
-                                    DropdownMenuItem(
-                                        text = { Text(item.nama_layanan) },
-                                        onClick = {
-                                            selectedLayanan = item
-                                            expanded = false
-                                        }
-                                    )
+                                    DropdownMenuItem(text = { Text(item.nama_layanan) }, onClick = { selectedLayanan = item; expanded = false })
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
                         OutlinedTextField(
-                            value = beratInput,
-                            onValueChange = { if (it.isEmpty() || it.toDoubleOrNull() != null) beratInput = it },
-                            label = { Text("Berat / Jumlah") },
-                            suffix = { Text(selectedLayanan?.satuan ?: "kg") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.fillMaxWidth()
+                            value = beratInput, onValueChange = { if (it.isEmpty() || it.toDoubleOrNull() != null) beratInput = it },
+                            label = { Text("Berat/Jumlah") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                         )
-                        if (selectedLayanan != null) {
-                            Text(
-                                "Total: Rp $totalHarga",
-                                modifier = Modifier.padding(top = 8.dp),
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                        Text("Total: Rp $totalHarga", fontWeight = FontWeight.Bold, color = PrimaryBlue)
                     }
                 },
                 confirmButton = {
+                    Button(onClick = {
+                        val currentLayanan = selectedLayanan ?: return@Button
+                        scope.launch {
+                            try {
+                                apiService.addPesanan(mapOf(
+                                    "nama_pelanggan" to namaPelanggan,
+                                    "id_layanan" to currentLayanan.id_layanan,
+                                    "berat" to (beratInput.toDoubleOrNull() ?: 0.0),
+                                    "total_harga" to totalHarga
+                                ))
+                                showDialog = false
+                                refreshData()
+                                selectedTab = 1
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Gagal Simpan", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }, enabled = namaPelanggan.isNotBlank() && beratInput.isNotBlank()) { Text("Konfirmasi") }
+                },
+                dismissButton = { TextButton(onClick = { showDialog = false }) { Text("Batal") } }
+            )
+        }
+
+        // --- DIALOG KONFIRMASI HAPUS ---
+        showDeleteConfirm?.let { pesanan ->
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirm = null },
+                title = { Text("Hapus Data") },
+                text = { Text("Apakah Anda yakin ingin menghapus data pesanan atas nama ${pesanan.nama_pelanggan}?") },
+                confirmButton = {
                     Button(
-                        enabled = (namaPelanggan.isNotBlank() && selectedLayanan != null && beratInput.isNotBlank()),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
                         onClick = {
-                            val currentLayanan = selectedLayanan ?: return@Button
                             scope.launch {
                                 try {
-                                    val data = mapOf(
-                                        "nama_pelanggan" to namaPelanggan,
-                                        "id_layanan" to currentLayanan.id_layanan,
-                                        "berat" to (beratInput.toDoubleOrNull() ?: 0.0),
-                                        "total_harga" to totalHarga
-                                    )
-                                    val res = apiService.addPesanan(data)
-
-                                    if (res.status == "success") {
-                                        Toast.makeText(context, "Pesanan Berhasil Disimpan", Toast.LENGTH_SHORT).show()
-                                        showDialog = false
+                                    val response = apiService.deletePesanan(mapOf("id_pesanan" to pesanan.id_pesanan.toInt()))
+                                    if (response.status == "success") {
+                                        Toast.makeText(context, "Data Berhasil Dihapus", Toast.LENGTH_SHORT).show()
                                         refreshData()
-                                        selectedTab = 1
                                     }
                                 } catch (e: Exception) {
-                                    Toast.makeText(context, "Kesalahan Jaringan", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Gagal Hapus: ${e.message}", Toast.LENGTH_SHORT).show()
+                                } finally {
+                                    showDeleteConfirm = null
                                 }
                             }
                         }
-                    ) { Text("Simpan Transaksi") }
+                    ) { Text("Hapus", color = Color.White) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDialog = false }) { Text("Batal") }
+                    TextButton(onClick = { showDeleteConfirm = null }) { Text("Batal") }
                 }
             )
         }
